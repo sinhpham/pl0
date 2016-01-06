@@ -1,0 +1,7 @@
+[package]
+name = "pl0"
+version = "0.1.0"
+authors = ["Sinh Pham <phamansinh@gmail.com>"]
+
+[dependencies]
+chomp = "0.2.1"
