@@ -37,16 +37,6 @@ enum AstNode {
     BeginEnd(Vec<AstNode>),
     IfThen{condition: Box<AstNode>, statement: Box<AstNode>},
     WhileDo{condition: Box<AstNode>, statement: Box<AstNode>},
-    
-}
-
-fn make_vec<T>(first_item: T, after_vec: &[T]) -> Vec<T>
-    where T: Clone {
-    let mut v = vec![first_item];
-    for t in after_vec {
-        v.push((*t).clone());
-    }
-    v
 }
 
 fn plus_sign(i: Input<u8>) -> U8Result<Sign> {
@@ -177,6 +167,8 @@ fn ident(i: Input<u8>) -> U8Result<AstNode> {
 fn factor(i: Input<u8>) -> U8Result<AstNode> {
     fn grouped_expression(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
+            let _ = take_while(|c| (c as char).is_whitespace());
+            
             token(b'(');
             let e = expression();
             token(b')');
@@ -186,6 +178,8 @@ fn factor(i: Input<u8>) -> U8Result<AstNode> {
     }
     fn numer_or_ident(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
+            let _ = take_while(|c| (c as char).is_whitespace());
+            
             let r = or(number, ident);
             
             ret r
@@ -283,7 +277,9 @@ fn expression(i: Input<u8>) -> U8Result<AstNode> {
 fn condition(i: Input<u8>) -> U8Result<AstNode> {
     fn odd_expression(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
-            let _ = string(b"odd");
+            let _ = take_while(|c| (c as char).is_whitespace());
+            
+            let _ = string(b"ODD");
             let ex = expression();
             ret ex
         }
@@ -291,8 +287,10 @@ fn condition(i: Input<u8>) -> U8Result<AstNode> {
 
     fn composed_expression(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
+            let _ = take_while(|c| (c as char).is_whitespace());
 
             let ex1 = expression();
+            let _ = take_while(|c| (c as char).is_whitespace());
             let op = ex_op();
             let ex2 = expression();
             ret AstNode::ComposedExpression{ex1: Box::new(ex1), op: op, ex2: Box::new(ex2)}
@@ -307,13 +305,17 @@ fn condition(i: Input<u8>) -> U8Result<AstNode> {
     }
 }
 
+
+
 fn statement(i: Input<u8>) -> U8Result<AstNode> {
     fn assignment(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
             let _ = take_while(|c| (c as char).is_whitespace());
             
             let _ = ident();
+            let _ = take_while(|c| (c as char).is_whitespace());
             string(b":=");
+            let _ = take_while(|c| (c as char).is_whitespace());
             let ex = expression();
             ret ex
         }
@@ -323,7 +325,8 @@ fn statement(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
             let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"call");
+            string(b"CALL");
+            let _ = take_while(|c| (c as char).is_whitespace());
             let ident = ident();
             ret ident
         }
@@ -344,32 +347,24 @@ fn statement(i: Input<u8>) -> U8Result<AstNode> {
             let _ = take_while(|c| (c as char).is_whitespace());
             
             token(b'!');
+            let _ = take_while(|c| (c as char).is_whitespace());
             let ex = expression();
             ret ex
         }
     }
     
     fn begin_end_block(i: Input<u8>) -> U8Result<AstNode> {
-        fn sub_begin_end(i: Input<u8>) -> U8Result<AstNode> {
-            parse!{i;
-                let _ = take_while(|c| (c as char).is_whitespace());
-                
-                token(b';');
-                let st = statement();
-                ret st
-            }
-        }
-        
         parse!{i;
             let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"begin");
-            let first_st = statement();
-            let statements: Vec<AstNode> = many(sub_begin_end);
-            string(b"end");
+            string(b"BEGIN");
+            let _ = take_while(|c| (c as char).is_whitespace());
+            let statements: Vec<AstNode> = sep_by1(statement, |idx| token(idx, b';'));
+            let _ = take_while(|c| (c as char).is_whitespace());
+            string(b"END");
             
             ret AstNode::BeginEnd({
-                make_vec(first_st, &statements)
+                statements
             })
         }
     }
@@ -378,9 +373,10 @@ fn statement(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
             let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"if");
+            string(b"IF");
             let cod = condition();
-            string(b"then");
+            let _ = take_while(|c| (c as char).is_whitespace());
+            string(b"THEN");
             let st = statement();
             
             ret AstNode::IfThen {
@@ -394,9 +390,10 @@ fn statement(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
             let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"while");
+            string(b"WHILE");
             let cod = condition();
-            string(b"do");
+            let _ = take_while(|c| (c as char).is_whitespace());
+            string(b"DO");
             let st = statement();
             
             ret AstNode::WhileDo {
@@ -406,7 +403,8 @@ fn statement(i: Input<u8>) -> U8Result<AstNode> {
         }
     }
     
-    alt!(i,
+    fn all_choices(i: Input<u8>) -> U8Result<AstNode> {
+        alt!(i,
         assignment,
         call,
         question_mark,
@@ -414,22 +412,36 @@ fn statement(i: Input<u8>) -> U8Result<AstNode> {
         begin_end_block,
         if_then,
         while_do)
+    }
+        
+    parse!{i;
+        let _ = take_while(|c| (c as char).is_whitespace());
+        
+        let s = option(all_choices, AstNode::Number(0));
+        ret s
+    }
 }
 
 fn block(i: Input<u8>) -> U8Result<AstNode> {
     fn const_declaration(i: Input<u8>) -> U8Result<AstNode> {
         fn sub_const_decl(i: Input<u8>) -> U8Result<AstNode> {
             parse!{i;
+                let _ = take_while(|c| (c as char).is_whitespace());
+                
                 let id = ident();
+                let _ = take_while(|c| (c as char).is_whitespace());
                 token(b'=');
-                let num = number();
+                let _ = take_while(|c| (c as char).is_whitespace());
+                let _ = number();
                 
                 ret id
             }
         }
         
         parse!{i;
-            string(b"const");
+            let _ = take_while(|c| (c as char).is_whitespace());
+            
+            string(b"CONST");
             let subs: Vec<AstNode> = sep_by1(sub_const_decl, |idx| token(idx, b','));
             token(b';');
             
@@ -439,7 +451,9 @@ fn block(i: Input<u8>) -> U8Result<AstNode> {
     
     fn var_declaration(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
-            string(b"var");
+            let _ = take_while(|c| (c as char).is_whitespace());
+            
+            string(b"VAR");
             let subs: Vec<AstNode> = sep_by1(ident, |idx| token(idx, b','));
             token(b';');
             
@@ -449,8 +463,10 @@ fn block(i: Input<u8>) -> U8Result<AstNode> {
     
     fn procedure(i: Input<u8>) -> U8Result<AstNode> {
         parse!{i;
-            string(b"procedure");
-            let id = ident();
+            let _ = take_while(|c| (c as char).is_whitespace());
+            
+            string(b"PROCEDURE");
+            let _ = ident();
             token(b';');
             let block = block();
             token(b';');
@@ -462,8 +478,8 @@ fn block(i: Input<u8>) -> U8Result<AstNode> {
     parse!{i;
         let _ = take_while(|c| (c as char).is_whitespace());
         
-        let const_de = option(const_declaration, AstNode::Number(0));
-        let var_de = option(var_declaration, AstNode::Number(0));
+        let _ = option(const_declaration, AstNode::Number(0));
+        let _ = option(var_declaration, AstNode::Number(0));
         let p: Vec<AstNode> = many(procedure);
         let s = statement();
         ret s
@@ -482,28 +498,79 @@ fn program(i: Input<u8>) -> U8Result<AstNode> {
 
 
 fn main() {
-    let n = parse_only(number, "  222  ".as_bytes());
-    let i = parse_only(ident, " a  ".as_bytes());
-    let f = parse_only(factor, "  asdf222 * 23".as_bytes());
-    let t = parse_only(term, " aa  *  bb ".as_bytes());
-    let e = parse_only(expression, " (a-2) * b + c-5 +e-f*    xxx /xxx *yyy".as_bytes());
-    let c = parse_only(condition, " a >= (-  y) * y + 5".as_bytes());
-    let s = parse_only(statement, "call fe".as_bytes());
-    let p = parse_only(program, "VAR x, squ;
+    // let n = parse_only(number, "  222  ".as_bytes());
+    // let i = parse_only(ident, " a  ".as_bytes());
+    // let f = parse_only(factor, "  asdf222 * 23".as_bytes());
+    // let t = parse_only(term, " aa  *  bb ".as_bytes());
+    // let e = parse_only(expression, " (a-2) * b + c-5 +e-f*    xxx /xxx *yyy".as_bytes());
+    //let c = parse_only(condition, " x <= 10".as_bytes());
+    //let s = parse_only(statement, " x := 1".as_bytes());
+    
+     //let wd = parse_only(while_do, "WHILE x <= 10 DO x := 1".as_bytes());
+  
+    
+   
+    let p = parse_only(program, "CONST
+  m =  7,
+  n = 85;
 
-PROCEDURE square;
+VAR
+  x, y, z, q, r;
+
+PROCEDURE multiply;
+VAR a, b;
+
 BEGIN
-   squ:= x * x
+  a := x;
+  b := y;
+  z := 0;
+  WHILE b > 0 DO BEGIN
+    IF ODD b THEN z := z + a;
+    a := 2 * a;
+    b := b / 2
+  END
+END;
+
+PROCEDURE divide;
+VAR w;
+BEGIN
+  r := x;
+  q := 0;
+  w := y;
+  WHILE w <= r DO w := 2 * w;
+  WHILE w > y DO BEGIN
+    q := 2 * q;
+    w := w / 2;
+    IF w <= r THEN BEGIN
+      r := r - w;
+      q := q + 1
+    END
+  END
+END;
+
+
+PROCEDURE gcd;
+VAR f, g;
+BEGIN
+  f := x;
+  g := y;
+  WHILE f # g DO BEGIN
+    IF f < g THEN g := g - f;
+    IF g < f THEN f := f - g
+  END;
+  z := f
 END;
 
 BEGIN
-   x := 1;
-   WHILE x <= 10 DO
-   BEGIN
-      CALL square;
-      ! squ;
-      x := x + 1
-   END
+  x := m;
+  y := n;
+  CALL multiply;
+  x := 25;
+  y :=  3;
+  CALL divide;
+  x := 84;
+  y := 36;
+  CALL gcd
 END.".as_bytes());
     println!("{:?}", p);
 }
