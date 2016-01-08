@@ -102,8 +102,18 @@ pub fn run_lexer(i: Input<u8>) -> U8Result<Vec<Token>> {
         }
     }
     
+    fn all_token(i: Input<u8>) -> U8Result<Token> {
+        parse!{i;
+            let _ = option(is_not_token, ());
+            let tok = is_token();
+
+            ret tok
+        }
+    }
+    
     parse!{i;
-        let tokens = sep_by1(is_token, is_not_token);
+        //let _ = take_while(|c| (c as char).is_whitespace());
+        let tokens = many(all_token);
 
         ret tokens
     }
