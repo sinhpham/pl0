@@ -1,6 +1,8 @@
 use chomp::*;
 use std::str;
 
+use lexer::*;
+
 #[derive(Debug, Clone)]
 enum Sign {
     Plus,
@@ -483,12 +485,12 @@ fn block(i: Input<u8>) -> U8Result<AstNode> {
     }
 }
 
-pub fn program(i: Input<u8>) -> U8Result<AstNode> {
+pub fn program<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode> {
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
+        let _ = take_while(|c| true);
         
-        let block = block();
-        token(b'.');
-        ret block
+        // let block = block();
+        // token(b'.');
+        ret AstNode::Number(0)
     }
 }
