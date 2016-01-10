@@ -26,53 +26,65 @@ enum ExOp {
 }
 
 #[derive(Debug, Clone)]
-pub enum AstNode {
-    Number(i32),
-    Ident(String),
-    Factor(Box<AstNode>),
-    Term{factors: Vec<AstNode>, ops: Vec<BiOp>},
-    Expression{terms: Vec<AstNode>, signs: Vec<Sign>},
-    ComposedExpression{ex1: Box<AstNode>, op: ExOp, ex2: Box<AstNode>},
-    BeginEnd(Vec<AstNode>),
-    IfThen{condition: Box<AstNode>, statement: Box<AstNode>},
-    WhileDo{condition: Box<AstNode>, statement: Box<AstNode>},
+pub enum AstNode<'a> {
+    Empty,
+    Token(Token<'a>)
+    // Number(i32),
+    // Ident(String),
+    // Factor(Box<AstNode>),
+    // Term{factors: Vec<AstNode>, ops: Vec<BiOp>},
+    // Expression{terms: Vec<AstNode>, signs: Vec<Sign>},
+    // ComposedExpression{ex1: Box<AstNode>, op: ExOp, ex2: Box<AstNode>},
+    // BeginEnd(Vec<AstNode>),
+    // IfThen{condition: Box<AstNode>, statement: Box<AstNode>},
+    // WhileDo{condition: Box<AstNode>, statement: Box<AstNode>},
 }
 
-fn plus_sign(i: Input<u8>) -> U8Result<Sign> {
+fn token_separator_cotent<'a>(tok: Token<'a>) -> Option<&'a str> {
+    match tok {
+        Token::Separator(tc) => {
+            Some(tc)
+        },
+        _ => None
+    }
+}
+
+fn plus_sign<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, Sign> {
     parse!{i;
-        let _ = token(b'+');
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("+"));
 
         ret Sign::Plus
     }
 }
 
-fn minus_sign(i: Input<u8>) -> U8Result<Sign> {
+fn minus_sign<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, Sign> {
     parse!{i;
-        let _ = token(b'-');
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("-"));
 
         ret Sign::Minus
     }
 }
 
-fn sign(i: Input<u8>) -> U8Result<Sign> {
+fn sign<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, Sign> {
     parse!{i;
-        let e_sign = or(plus_sign,minus_sign);
+        let e_sign = or(plus_sign, minus_sign);
         
         ret e_sign
     }
 }
 
-fn mul_sign(i: Input<u8>) -> U8Result<BiOp> {
+fn mul_sign<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, BiOp> {
     parse!{i;
-        let _ = token(b'*');
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("*"));
 
         ret BiOp::Mul
     }
 }
 
-fn div_sign(i: Input<u8>) -> U8Result<BiOp> {
+fn div_sign<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, BiOp> {
     parse!{i;
-        let _ = token(b'/');
+        
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("/"));
 
         ret BiOp::Div
     }
@@ -84,7 +96,7 @@ macro_rules! alt {
     ($i:expr, $a:expr, $($b:expr),*) => { or($i, $a, |i| alt!(i, $($b),*)) };
 }
 
-fn ex_op(i: Input<u8>) -> U8Result<ExOp> {
+fn ex_op<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
     alt!(i,
         less_than_or_equal,
         greater_than_or_equal,
@@ -94,90 +106,96 @@ fn ex_op(i: Input<u8>) -> U8Result<ExOp> {
         greater_than)
 }
 
-fn equal(i: Input<u8>) -> U8Result<ExOp> {
+fn equal<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
     parse!{i;
-        let _ = token(b'=');
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("="));
 
         ret ExOp::Equal
     }
 }
 
-fn number_sign(i: Input<u8>) -> U8Result<ExOp> {
+fn number_sign<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
     parse!{i;
-        let _ = token(b'#');
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("#"));
 
         ret ExOp::NumberSign
     }
 }
 
-fn less_than(i: Input<u8>) -> U8Result<ExOp> {
+fn less_than<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
     parse!{i;
-        let _ = token(b'<');
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("<"));
 
         ret ExOp::LessThan
     }
 }
 
-fn less_than_or_equal(i: Input<u8>) -> U8Result<ExOp> {
+fn less_than_or_equal<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
     parse!{i;
-        let _ = string(b"<=");
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("<="));
 
         ret ExOp::LessThanOrEqual
     }
 }
 
-fn greater_than(i: Input<u8>) -> U8Result<ExOp> {
+fn greater_than<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
     parse!{i;
-        let _ = token(b'>');
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(">"));
 
         ret ExOp::GreaterThan
     }
 }
 
-fn greater_than_or_equal(i: Input<u8>) -> U8Result<ExOp> {
+fn greater_than_or_equal<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
     parse!{i;
-        let _ = string(b">=");
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(">="));
 
         ret ExOp::GreaterThanOrEqual
     }
 }
 
-fn number(i: Input<u8>) -> U8Result<AstNode> {
+fn number<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
-        
-        let num = take_while1(|c| (c as char).is_digit(10));
+        let num = satisfy(|t| {
+            match t {
+                Token::Number(_) => true,
+                _ => false 
+            }
+        });
 
-        ret AstNode::Number(str::from_utf8(num).unwrap().parse::<i32>().unwrap())
+        ret AstNode::Empty
     }
 }
 
-fn ident(i: Input<u8>) -> U8Result<AstNode> {
+fn ident<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
-        
-        let first = satisfy(|c| (c as char).is_alphabetic());
-        let rest = take_while(|c| (c as char).is_alphabetic() || (c as char).is_digit(10));
+    
+        let ident = satisfy(|t| {
+            match t {
+                Token::Ident(_) => true,
+                _ => false 
+            }
+        });
 
-        ret AstNode::Ident(str::from_utf8(&vec![first]).unwrap().to_owned() + str::from_utf8(rest).unwrap())
+        ret AstNode::Empty
     }
 }
 
-fn factor(i: Input<u8>) -> U8Result<AstNode> {
-    fn grouped_expression(i: Input<u8>) -> U8Result<AstNode> {
+fn factor<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+    fn grouped_expression<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
+        
+            let t = satisfy_with(token_separator_cotent, |sep| sep == Some("("));
             
-            token(b'(');
             let e = expression();
-            token(b')');
+            
+            let t = satisfy_with(token_separator_cotent, |sep| sep == Some(")"));
             
             ret e
         }
     }
-    fn numer_or_ident(i: Input<u8>) -> U8Result<AstNode> {
+    fn numer_or_ident<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
             let r = or(number, ident);
             
@@ -185,18 +203,15 @@ fn factor(i: Input<u8>) -> U8Result<AstNode> {
         }
     }
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
-    
         let f = or(numer_or_ident, grouped_expression);
         
-        ret AstNode::Factor(Box::new(f))
+        ret f
     }
 }
 
-fn term(i: Input<u8>) -> U8Result<AstNode> {
-    fn sub_term(i: Input<u8>) -> U8Result<(BiOp, AstNode)> {
+fn term<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+    fn sub_term<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, (BiOp, AstNode<'a>)> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
             let sign = or(mul_sign, div_sign);
             let fa = factor();
@@ -206,37 +221,18 @@ fn term(i: Input<u8>) -> U8Result<AstNode> {
     }
     
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
-        
         let first_factor = factor();
         
         let sub_terms: Vec<(BiOp, AstNode)> = many(sub_term);
         
-        ret AstNode::Term {
-            factors: {
-                let mut v = vec![first_factor];
-                for t in &sub_terms {
-                    let (_, x) = t.clone();
-                    v.push(x.clone());
-                }
-                v
-            },
-            ops: {
-                let mut v = vec![];
-                for t in &sub_terms {
-                    let (x, _) = t.clone();
-                    v.push(x.clone());
-                }
-                v
-            }
-        }
+        ret AstNode::Empty
     }
 }
 
-fn expression(i: Input<u8>) -> U8Result<AstNode> {
-    fn sub_expression(i: Input<u8>) -> U8Result<(AstNode, Sign)> {
+fn expression<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+    fn sub_expression<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, (AstNode<'a>, Sign)> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
+            
             
             let sign = sign();
             let term = term();
@@ -245,59 +241,40 @@ fn expression(i: Input<u8>) -> U8Result<AstNode> {
     }
     
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
-        
         let first_sign = option(sign, Sign::Plus);
         let first_term = term();
     
         let e: Vec<(AstNode, Sign)> = many(sub_expression);
     
-        ret AstNode::Expression {
-            terms: {
-                let mut v = vec![first_term];
-                for t in &e {
-                    let (x, _) = t.clone();
-                    v.push(x.clone());
-                }
-                v
-            },
-            signs: {
-                let mut v = vec![first_sign];
-                for t in &e {
-                    let (_, x) = t.clone();
-                    v.push(x.clone());
-                }
-                v
-            }
-        }
+        ret AstNode::Empty
     }
 }
 
-fn condition(i: Input<u8>) -> U8Result<AstNode> {
-    fn odd_expression(i: Input<u8>) -> U8Result<AstNode> {
+fn condition<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+    fn odd_expression<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
-            let _ = string(b"ODD");
+            
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("ODD"));
             let ex = expression();
             ret ex
         }
     }
 
-    fn composed_expression(i: Input<u8>) -> U8Result<AstNode> {
+    fn composed_expression<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
+            
 
             let ex1 = expression();
-            let _ = take_while(|c| (c as char).is_whitespace());
+            
             let op = ex_op();
             let ex2 = expression();
-            ret AstNode::ComposedExpression{ex1: Box::new(ex1), op: op, ex2: Box::new(ex2)}
+            ret AstNode::Empty
         }
     }
     
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
+        
         
         let ret = or(odd_expression, composed_expression);
         ret ret
@@ -306,103 +283,84 @@ fn condition(i: Input<u8>) -> U8Result<AstNode> {
 
 
 
-fn statement(i: Input<u8>) -> U8Result<AstNode> {
-    fn assignment(i: Input<u8>) -> U8Result<AstNode> {
+fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+    fn assignment<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
+            
             
             let _ = ident();
-            let _ = take_while(|c| (c as char).is_whitespace());
-            string(b":=");
-            let _ = take_while(|c| (c as char).is_whitespace());
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(":="));
+            
             let ex = expression();
             ret ex
         }
     }
     
-    fn call(i: Input<u8>) -> U8Result<AstNode> {
+    fn call<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"CALL");
-            let _ = take_while(|c| (c as char).is_whitespace());
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("CALL"));
+            
             let ident = ident();
-            ret ident
+            ret AstNode::Empty
         }
     }
     
-    fn question_mark(i: Input<u8>) -> U8Result<AstNode> {
+    fn question_mark<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
-            token(b'?');
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("?"));
             let ident = ident();
-            ret ident
+            ret AstNode::Empty
         }
     }
     
-    fn exclaimation(i: Input<u8>) -> U8Result<AstNode> {
+    fn exclaimation<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
-            
-            token(b'!');
-            let _ = take_while(|c| (c as char).is_whitespace());
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("!"));
             let ex = expression();
             ret ex
         }
     }
     
-    fn begin_end_block(i: Input<u8>) -> U8Result<AstNode> {
+    fn begin_end_block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"BEGIN");
-            let _ = take_while(|c| (c as char).is_whitespace());
-            let statements: Vec<AstNode> = sep_by1(statement, |idx| token(idx, b';'));
-            let _ = take_while(|c| (c as char).is_whitespace());
-            string(b"END");
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("BEGIN"));
             
-            ret AstNode::BeginEnd({
-                statements
-            })
+            let statements: Vec<AstNode> = sep_by1(statement, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(";")));
+            
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("END"));
+            
+            ret AstNode::Empty
         }
     }
     
-    fn if_then(i: Input<u8>) -> U8Result<AstNode> {
+    fn if_then<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"IF");
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("IF"));
             let cod = condition();
-            let _ = take_while(|c| (c as char).is_whitespace());
-            string(b"THEN");
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("THEN"));
             let st = statement();
             
-            ret AstNode::IfThen {
-                condition: Box::new(cod),
-                statement: Box::new(st)
-            }
+            ret AstNode::Empty
         }
     }
     
-    fn while_do(i: Input<u8>) -> U8Result<AstNode> {
+    fn while_do<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"WHILE");
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("WHILE"));
             let cod = condition();
-            let _ = take_while(|c| (c as char).is_whitespace());
-            string(b"DO");
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("DO"));
             let st = statement();
             
-            ret AstNode::WhileDo {
-                condition: Box::new(cod),
-                statement: Box::new(st)
-            }
+            ret AstNode::Empty
         }
     }
     
-    fn all_choices(i: Input<u8>) -> U8Result<AstNode> {
+    fn all_choices<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         alt!(i,
         assignment,
         call,
@@ -414,83 +372,72 @@ fn statement(i: Input<u8>) -> U8Result<AstNode> {
     }
         
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
         
-        let s = option(all_choices, AstNode::Number(0));
+        
+        let s = option(all_choices, AstNode::Empty);
         ret s
     }
 }
 
-fn block(i: Input<u8>) -> U8Result<AstNode> {
-    fn const_declaration(i: Input<u8>) -> U8Result<AstNode> {
-        fn sub_const_decl(i: Input<u8>) -> U8Result<AstNode> {
+fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+    fn const_declaration<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+        fn sub_const_decl<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
             parse!{i;
-                let _ = take_while(|c| (c as char).is_whitespace());
+                let ident = ident();
+                let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("="));
+                let num = number();
                 
-                let id = ident();
-                let _ = take_while(|c| (c as char).is_whitespace());
-                token(b'=');
-                let _ = take_while(|c| (c as char).is_whitespace());
-                let _ = number();
-                
-                ret id
+                ret AstNode::Empty
             }
         }
         
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("CONST"));
             
-            string(b"CONST");
-            let subs: Vec<AstNode> = sep_by1(sub_const_decl, |idx| token(idx, b','));
-            token(b';');
+            let subs: Vec<AstNode> = sep_by1(sub_const_decl, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(",")));
             
-            ret subs[0].clone()
+            ret AstNode::Empty
         }
     }
     
-    fn var_declaration(i: Input<u8>) -> U8Result<AstNode> {
+    fn var_declaration<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
             
-            string(b"VAR");
-            let subs: Vec<AstNode> = sep_by1(ident, |idx| token(idx, b','));
-            token(b';');
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("VAR"));
+            let subs: Vec<AstNode> = sep_by1(ident, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(",")));
             
-            ret subs[0].clone()
+            ret AstNode::Empty
         }
     }
     
-    fn procedure(i: Input<u8>) -> U8Result<AstNode> {
+    fn procedure<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            let _ = take_while(|c| (c as char).is_whitespace());
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("PROCEDURE"));
             
-            string(b"PROCEDURE");
-            let _ = ident();
-            token(b';');
             let block = block();
-            token(b';');
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(";"));
             
             ret block
         }
     }
     
     parse!{i;
-        let _ = take_while(|c| (c as char).is_whitespace());
         
-        let _ = option(const_declaration, AstNode::Number(0));
-        let _ = option(var_declaration, AstNode::Number(0));
+        
+        let _ = option(const_declaration, AstNode::Empty);
+        let _ = option(var_declaration, AstNode::Empty);
         let p: Vec<AstNode> = many(procedure);
         let s = statement();
         ret s
     }
 }
 
-pub fn program<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode> {
+pub fn program<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     parse!{i;
         let _ = take_while(|c| true);
         
-        // let block = block();
-        // token(b'.');
-        ret AstNode::Number(0)
+        let block = block();
+        let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("."));
+        ret AstNode::Empty
     }
 }
