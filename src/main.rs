@@ -22,72 +22,29 @@ fn main() {
   
     
    
-    let p = parse_only(run_lexer, "CONST
-  m =  7,
-  n = 85;
+    let p = parse_only(run_lexer, "VAR x, squ;
 
-VAR
-  x, y, z, q, r;
-
-PROCEDURE multiply;
-VAR a, b;
-
+PROCEDURE square;
 BEGIN
-  a := x;
-  b := y;
-  z := 0;
-  WHILE b > 0 DO BEGIN
-    IF ODD b THEN z := z + a;
-    a := 2 * a;
-    b := b / 2
-  END
-END;
-
-PROCEDURE divide;
-VAR w;
-BEGIN
-  r := x;
-  q := 0;
-  w := y;
-  WHILE w <= r DO w := 2 * w;
-  WHILE w > y DO BEGIN
-    q := 2 * q;
-    w := w / 2;
-    IF w <= r THEN BEGIN
-      r := r - w;
-      q := q + 1
-    END
-  END
-END;
-
-PROCEDURE gcd;
-VAR f, g;
-BEGIN
-  f := x;
-  g := y;
-  WHILE f # g DO BEGIN
-    IF f < g THEN g := g - f;
-    IF g < f THEN f := f - g
-  END;
-  z := f
+   squ:= x * x
 END;
 
 BEGIN
-  x := m;
-  y := n;
-  CALL multiply;
-  x := 25;
-  y :=  3;
-  CALL divide;
-  x := 84;
-  y := 36;
-  CALL gcd
-END.                             ".as_bytes());
+   x := 1;
+   WHILE x <= 10 DO
+   BEGIN
+      CALL square;
+      ! squ;
+      x := x + 1
+   END
+END.
+                             ".as_bytes());
 
-    println!("{:?}", p);
+    //println!("{:?}", p);
     {
         if let Ok(tokens) = p {
             //let input = Input::new(&tokens);
+            //println!("{:?}", &tokens);
             let ast = parse_only(program, &tokens);
             println!("{:?}", ast);
         }
