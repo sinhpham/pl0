@@ -22,7 +22,8 @@ fn main() {
   
     
    
-    let p = parse_only(run_lexer, "VAR x, squ;
+    let p = parse_only(run_lexer, "
+VAR x, squ;
 
 PROCEDURE square;
 BEGIN

@@ -25,25 +25,17 @@ enum ExOp {
     GreaterThanOrEqual,
 }
 
-#[derive(Debug)]
-pub struct AstNumber(i32);
-
-#[derive(Debug)]
-pub struct AstIdent<'a>(&'a str);
-
 #[derive(Debug, Clone)]
 pub enum AstNode<'a> {
-    Empty,
-    Token(Token<'a>)
-    // Number(i32),
-    // Ident(String),
-    // Factor(Box<AstNode>),
-    // Term{factors: Vec<AstNode>, ops: Vec<BiOp>},
-    // Expression{terms: Vec<AstNode>, signs: Vec<Sign>},
-    // ComposedExpression{ex1: Box<AstNode>, op: ExOp, ex2: Box<AstNode>},
-    // BeginEnd(Vec<AstNode>),
-    // IfThen{condition: Box<AstNode>, statement: Box<AstNode>},
-    // WhileDo{condition: Box<AstNode>, statement: Box<AstNode>},
+    Number(i32),
+    Ident(&'a str),
+    Factor(Box<AstNode<'a>>),
+    Term{factors: Vec<AstNode<'a>>, ops: Vec<BiOp>},
+    Expression{terms: Vec<AstNode<'a>>, signs: Vec<Sign>},
+    ComposedExpression{ex1: Box<AstNode<'a>>, op: ExOp, ex2: Box<AstNode<'a>>},
+    BeginEnd(Vec<AstNode<'a>>),
+    IfThen{condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
+    WhileDo{condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
 }
 
 fn token_separator_cotent<'a>(tok: Token<'a>) -> Option<&'a str> {
@@ -170,31 +162,35 @@ fn greater_than_or_equal<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>,
 }
 
 fn number<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
-    parse!{i;
-        let num = satisfy(|t| {
+    let n = satisfy(i,
+        |t| {
             match t {
                 Token::Number(_) => true,
-                _ => false 
+                _ => false
+            }
+        }).map(|lc| {
+            match lc {
+                Token::Number(c) => AstNode::Number(c),
+                _ => panic!("asd")
             }
         });
-
-        ret AstNode::Empty
-    }
+    n
 }
 
 fn ident<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
-    println!("ident called");
-    parse!{i;
-    
-        let ident = satisfy(|t| {
-            match t {
-                Token::Ident(_) => true,
-                _ => false 
-            }
-        });
+    let ident = satisfy(i, |t| {
+        match t {
+            Token::Ident(_) => true,
+            _ => false 
+        }
+    }).map(|lc| {
+        match lc {
+            Token::Ident(id) => AstNode::Ident(id),
+            _ => panic!("asd")
+        }
+    });
 
-        ret AstNode::Empty
-    }
+    ident
 }
 
 fn factor<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
@@ -221,7 +217,7 @@ fn factor<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     parse!{i;
         let f = or(numer_or_ident, grouped_expression);
         
-        ret f
+        ret AstNode::Factor(Box::new(f))
     }
 }
 
@@ -239,9 +235,26 @@ fn term<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     parse!{i;
         let first_factor = factor();
         
-        let sub_terms: Vec<(BiOp, AstNode)> = many(sub_term);
+        let sub_terms: Vec<(BiOp, AstNode<'a>)> = many(sub_term);
         
-        ret AstNode::Empty
+        ret AstNode::Term {
+            factors: {
+                let mut v = vec![first_factor];
+                for t in &sub_terms {
+                    let (_, x) = t.clone();
+                    v.push(x.clone());
+                }
+                v
+            },
+            ops: {
+                let mut v = vec![];
+                for t in &sub_terms {
+                    let (x, _) = t.clone();
+                    v.push(x.clone());
+                }
+                v
+            }
+        }
     }
 }
 
@@ -260,9 +273,26 @@ fn expression<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a
         let first_sign = option(sign, Sign::Plus);
         let first_term = term();
     
-        let e: Vec<(AstNode, Sign)> = many(sub_expression);
-    
-        ret AstNode::Empty
+        let e: Vec<(AstNode<'a>, Sign)> = many(sub_expression);
+        
+        ret AstNode::Expression {
+            terms: {
+                let mut v = vec![first_term];
+                for t in &e {
+                    let (x, _) = t.clone();
+                    v.push(x.clone());
+                }
+                v
+            },
+            signs: {
+                let mut v = vec![first_sign];
+                for t in &e {
+                    let (_, x) = t.clone();
+                    v.push(x.clone());
+                }
+                v
+            }
+        }
     }
 }
 
@@ -279,13 +309,11 @@ fn condition<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
 
     fn composed_expression<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            
-
             let ex1 = expression();
             
             let op = ex_op();
             let ex2 = expression();
-            ret AstNode::Empty
+            ret AstNode::ComposedExpression{ex1: Box::new(ex1), op: op, ex2: Box::new(ex2)}
         }
     }
     
@@ -318,7 +346,7 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("CALL"));
             
             let ident = ident();
-            ret AstNode::Empty
+            ret ident
         }
     }
     
@@ -327,7 +355,7 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("?"));
             let ident = ident();
-            ret AstNode::Empty
+            ret ident
         }
     }
     
@@ -344,11 +372,13 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("BEGIN"));
             
-            let statements: Vec<AstNode> = sep_by1(statement, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(";")));
+            let statements: Vec<AstNode<'a>> = sep_by1(statement, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(";")));
             
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("END"));
             
-            ret AstNode::Empty
+            ret AstNode::BeginEnd({
+                statements
+            })
         }
     }
     
@@ -360,7 +390,10 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("THEN"));
             let st = statement();
             
-            ret AstNode::Empty
+            ret AstNode::IfThen {
+                condition: Box::new(cod),
+                statement: Box::new(st)
+            }
         }
     }
     
@@ -372,7 +405,10 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("DO"));
             let st = statement();
             
-            ret AstNode::Empty
+            ret AstNode::WhileDo {
+                condition: Box::new(cod),
+                statement: Box::new(st)
+            }
         }
     }
     
@@ -390,31 +426,30 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
     parse!{i;
         
         
-        let s = option(all_choices, AstNode::Empty);
+        let s = option(all_choices, AstNode::Number(0));
         ret s
     }
 }
 
 fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     fn const_declaration<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
-        println!("const_decl called");
         fn sub_const_decl<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
             parse!{i;
                 let ident = ident();
                 let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("="));
                 let num = number();
                 
-                ret AstNode::Empty
+                ret ident
             }
         }
         
         parse!{i;
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("CONST"));
             
-            let subs: Vec<AstNode> = sep_by1(sub_const_decl, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(",")));
+            let subs: Vec<AstNode<'a>> = sep_by1(sub_const_decl, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(",")));
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(";"));
             
-            ret AstNode::Empty
+            ret subs[0].clone()
         }
     }
     
@@ -423,15 +458,14 @@ fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
             
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("VAR"));
-            let subs: Vec<AstNode> = sep_by1(ident, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(",")));
+            let subs: Vec<AstNode<'a>> = sep_by1(ident, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(",")));
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(";"));
             
-            ret AstNode::Empty
+            ret subs[0].clone()
         }
     }
     
     fn procedure<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
-        println!("PROCEDURE called");
         parse!{i;
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("PROCEDURE"));
             let ident = ident();
@@ -443,12 +477,10 @@ fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         }
     }
     
-    println!("block called");
-    
     parse!{i;
         
-        let _ = option(const_declaration, AstNode::Empty);
-        let _ = option(var_declaration, AstNode::Empty);
+        let _ = option(const_declaration, AstNode::Number(0));
+        let _ = option(var_declaration, AstNode::Number(0));
         let p: Vec<AstNode> = many(procedure);
         let s = statement();
         ret s
@@ -457,10 +489,9 @@ fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
 
 pub fn program<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     parse!{i;
-        //let _ = take_while(|c| true);
         
         let block = block();
         let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("."));
-        ret AstNode::Empty
+        ret block
     }
 }
