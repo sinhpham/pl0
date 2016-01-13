@@ -36,6 +36,13 @@ pub enum AstNode<'a> {
     BeginEnd(Vec<AstNode<'a>>),
     IfThen{condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
     WhileDo{condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
+    Assignment {ident: Box<AstNode<'a>>, expression: Box<AstNode<'a>>},
+    Call {ident: Box<AstNode<'a>>},
+    QuestionMark {ident: Box<AstNode<'a>>},
+    ExclaimationMark {expression: Box<AstNode<'a>>},
+    Const {ident: Box<AstNode<'a>>, value: Box<AstNode<'a>>},
+    Procedure {ident: Box<AstNode<'a>>, block: Box<AstNode<'a>>},
+    Block {const_decl: Vec<AstNode<'a>>, var_decl: Vec<AstNode<'a>>, procedure: Vec<AstNode<'a>>, statement: Box<AstNode<'a>>}
 }
 
 fn token_separator_cotent<'a>(tok: Token<'a>) -> Option<&'a str> {
@@ -330,13 +337,14 @@ fn condition<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
 fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     fn assignment<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
-            
-            
-            let _ = ident();
+            let ident = ident();
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(":="));
             
             let ex = expression();
-            ret ex
+            ret AstNode::Assignment {
+                ident: Box::new(ident),
+                expression: Box::new(ex)
+            }
         }
     }
     
@@ -346,7 +354,9 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("CALL"));
             
             let ident = ident();
-            ret ident
+            ret AstNode::Call {
+                ident: Box::new(ident)
+            }
         }
     }
     
@@ -355,7 +365,9 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("?"));
             let ident = ident();
-            ret ident
+            ret AstNode::QuestionMark {
+                ident: Box::new(ident)
+            }
         }
     }
     
@@ -363,7 +375,9 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
         parse!{i;
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("!"));
             let ex = expression();
-            ret ex
+            ret AstNode::ExclaimationMark {
+                expression: Box::new(ex)
+            }
         }
     }
     
@@ -432,14 +446,17 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
 }
 
 fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
-    fn const_declaration<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+    fn const_declaration<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, Vec<AstNode<'a>>> {
         fn sub_const_decl<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
             parse!{i;
                 let ident = ident();
                 let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("="));
                 let num = number();
                 
-                ret ident
+                ret AstNode::Const {
+                    ident: Box::new(ident),
+                    value: Box::new(num)
+                }
             }
         }
         
@@ -449,11 +466,11 @@ fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
             let subs: Vec<AstNode<'a>> = sep_by1(sub_const_decl, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(",")));
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(";"));
             
-            ret subs[0].clone()
+            ret subs
         }
     }
     
-    fn var_declaration<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
+    fn var_declaration<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, Vec<AstNode<'a>>> {
         
         parse!{i;
             
@@ -461,7 +478,7 @@ fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
             let subs: Vec<AstNode<'a>> = sep_by1(ident, |idx| satisfy_with(idx, token_separator_cotent, |sep| sep == Some(",")));
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(";"));
             
-            ret subs[0].clone()
+            ret subs
         }
     }
     
@@ -473,17 +490,26 @@ fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
             let block = block();
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(";"));
             
-            ret block
+            ret AstNode::Procedure {
+                ident: Box::new(ident),
+                block: Box::new(block)
+            }
         }
     }
     
     parse!{i;
         
-        let _ = option(const_declaration, AstNode::Number(0));
-        let _ = option(var_declaration, AstNode::Number(0));
-        let p: Vec<AstNode> = many(procedure);
+        let c = option(const_declaration, Vec::new());
+        let v = option(var_declaration, Vec::new());
+        let p: Vec<AstNode<'a>> = many(procedure);
         let s = statement();
-        ret s
+        
+        ret AstNode::Block {
+            const_decl: c,
+            var_decl: v,
+            procedure: p,
+            statement: Box::new(s)
+        }
     }
 }
 
