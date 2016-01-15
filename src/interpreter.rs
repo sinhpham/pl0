@@ -19,18 +19,24 @@ impl<'a> Interpreter<'a> {
     fn visit(node: &AstNode<'a>) {
         match *node {
             AstNode::Expression{ref terms, ref signs} => {}
-            AstNode::Block{ref const_decl, ref var_decl, ref procedure, ref statement} => {
+            AstNode::Block{ref const_decl, ref var_decl, ref procedures, ref statement} => {
                 for c_decl in const_decl {
                     Self::visit(c_decl);
                 }
                 for v_decl in var_decl {
                     Self::visit_var(v_decl);
                 }
+                for p in procedures {
+                    Self::visit(p);
+                }
                 println!("block");
                 
             }
             AstNode::Const{ref ident, ref value} => {
                 println!("const");
+            }
+            AstNode::Procedure {ref ident, ref block} => {
+                Self::visit_var(ident);
             }
             _ => {}
         };

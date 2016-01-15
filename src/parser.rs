@@ -42,7 +42,7 @@ pub enum AstNode<'a> {
     ExclaimationMark {expression: Box<AstNode<'a>>},
     Const {ident: Box<AstNode<'a>>, value: Box<AstNode<'a>>},
     Procedure {ident: Box<AstNode<'a>>, block: Box<AstNode<'a>>},
-    Block {const_decl: Vec<AstNode<'a>>, var_decl: Vec<AstNode<'a>>, procedure: Vec<AstNode<'a>>, statement: Box<AstNode<'a>>}
+    Block {const_decl: Vec<AstNode<'a>>, var_decl: Vec<AstNode<'a>>, procedures: Vec<AstNode<'a>>, statement: Box<AstNode<'a>>}
 }
 
 fn token_separator_cotent<'a>(tok: Token<'a>) -> Option<&'a str> {
@@ -438,8 +438,6 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
     }
         
     parse!{i;
-        
-        
         let s = option(all_choices, AstNode::Number(0));
         ret s
     }
@@ -507,7 +505,7 @@ fn block<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         ret AstNode::Block {
             const_decl: c,
             var_decl: v,
-            procedure: p,
+            procedures: p,
             statement: Box::new(s)
         }
     }
