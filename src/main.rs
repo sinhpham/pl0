@@ -6,10 +6,12 @@ use chomp::*;
 mod lexer;
 mod parser;
 mod codegen;
+mod interpreter;
 
 use lexer::*;
 use parser::*;
 use codegen::*;
+use interpreter::*;
 
 fn main() {
     // let n = parse_only(number, "  222  ".as_bytes());
@@ -52,8 +54,9 @@ END.
             println!("{:?}", ast);
             
             if let Ok(c) = ast {
-                let c_gen = code_gen(c);
-                println!("{:?}", c_gen);
+                let interpreter = Interpreter::new(c);
+                interpreter.run();
+                //println!("{:?}", c_gen);
             }
             
         }
