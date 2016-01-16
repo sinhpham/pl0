@@ -4,13 +4,13 @@ use std::str;
 use lexer::*;
 
 #[derive(Debug, Clone)]
-enum Sign {
+pub enum Sign {
     Plus,
     Minus
 }
 
 #[derive(Debug, Clone)]
-enum BiOp {
+pub enum BiOp {
     Mul,
     Div
 }
