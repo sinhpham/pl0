@@ -57,8 +57,19 @@ impl<'a> Interpreter<'a> {
                         Sign::Minus => acc - val.unwrap()
                     }
                 });
-                
+                println!("ex = {:?}", ret);
                 Some(ret)
+            },
+            AstNode::BeginEnd(ref statements) => {
+                for s in statements {
+                    Self::visit(s);
+                }
+                None
+            },
+            AstNode::Assignment {ref ident, ref expression} => {
+                println!("assign called");
+                let ex_ret = Self::visit(expression);
+                None
             }
             AstNode::Block{ref const_decl, ref var_decl, ref procedures, ref statement} => {
                 for c_decl in const_decl {
@@ -70,6 +81,7 @@ impl<'a> Interpreter<'a> {
                 for p in procedures {
                     Self::visit(p);
                 }
+                Self::visit(statement);
                 println!("block");
                 None
             }

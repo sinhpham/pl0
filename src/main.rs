@@ -27,21 +27,11 @@ fn main() {
     
    
     let p = parse_only(run_lexer, "
-VAR x, squ;
 
-PROCEDURE square;
-BEGIN
-   squ:= x * x
-END;
 
 BEGIN
-   x := 1;
-   WHILE x <= 10 DO
-   BEGIN
-      CALL square;
-      ! squ;
-      x := x + 1
-   END
+   x := -1 + 1 * 4;
+   
 END.
                              ".as_bytes());
 
@@ -55,8 +45,8 @@ END.
             
             if let Ok(c) = ast {
                 let interpreter = Interpreter::new(c);
-                interpreter.run();
-                //println!("{:?}", c_gen);
+                let ret = interpreter.run();
+                println!("ret = {:?}", ret);
             }
             
         }
