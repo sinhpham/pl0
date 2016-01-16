@@ -120,7 +120,7 @@ impl<'a> Interpreter<'a> {
         if let &AstNode::Ident(s) = node {
             s.to_owned()
         } else {
-            "".to_owned()
+            panic!("asdf");
         }
     }
     

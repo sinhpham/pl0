@@ -30,7 +30,7 @@ fn main() {
 
 
 BEGIN
-   x := -1 + 1 * 4;
+   x := (-10 + 1) * 4;
    
 END.
                              ".as_bytes());
@@ -39,7 +39,7 @@ END.
     {
         if let Ok(tokens) = p {
             //let input = Input::new(&tokens);
-            //println!("{:?}", &tokens);
+            // println!("{:?}", tokens);
             let ast = parse_only(program, &tokens);
             println!("{:?}", ast);
             
@@ -48,7 +48,6 @@ END.
                 let ret = interpreter.run();
                 println!("ret = {:?}", ret);
             }
-            
         }
     }
     

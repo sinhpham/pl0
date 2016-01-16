@@ -91,7 +91,9 @@ fn separator(i: Input<u8>) -> U8Result<Token> {
             |idx| string(idx, b"/").map(to_sep),
             |idx| string(idx, b"#").map(to_sep),
             |idx| string(idx, b".").map(to_sep),
-            |idx| string(idx, b"!").map(to_sep)
+            |idx| string(idx, b"!").map(to_sep),
+            |idx| string(idx, b"(").map(to_sep),
+            |idx| string(idx, b")").map(to_sep)
         )
     }
     
