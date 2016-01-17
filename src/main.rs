@@ -27,10 +27,11 @@ fn main() {
     
    
     let p = parse_only(run_lexer, "
-
+VAR x, y;
 
 BEGIN
-   x := (-10 + 1) * 4;
+    y := -10;
+   x := (y + 1) * 4;
    
 END.
                              ".as_bytes());

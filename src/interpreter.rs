@@ -27,8 +27,9 @@ impl<'a> Interpreter<'a> {
         match *node {
             AstNode::Number(num) => Some(num),
             AstNode::Ident(ref s) => {
-                // TODO
-                None
+                let curr_scope = var_stack.last().unwrap();
+                
+                Some(*curr_scope.get(s.to_owned()).unwrap())
             },
             AstNode::Factor(ref n) => {
                 Self::visit_impl(n, var_stack)
@@ -75,7 +76,16 @@ impl<'a> Interpreter<'a> {
             },
             AstNode::Assignment {ref ident, ref expression} => {
                 println!("assign called");
+                
+                
+                
+                let ident = Self::get_ident(ident);
                 let ex_ret = Self::visit_impl(expression, var_stack);
+                
+                let e = Self::get_var_entry(var_stack, ident);
+                
+                *e = ex_ret.unwrap();
+                
                 None
             }
             AstNode::Block{ref const_decl, ref var_decl, ref procedures, ref statement} => {
@@ -83,7 +93,12 @@ impl<'a> Interpreter<'a> {
                     Self::visit_impl(c_decl, var_stack);
                 }
                 for v_decl in var_decl {
-                    Self::visit_var(v_decl);
+                    let curr_scope = var_stack.last_mut().unwrap();
+                
+                    let ident = Self::get_ident(v_decl);
+                    let val = 0;
+                    
+                    curr_scope.insert(ident, val);
                 }
                 for p in procedures {
                     Self::visit_impl(p, var_stack);
@@ -103,18 +118,18 @@ impl<'a> Interpreter<'a> {
                 None
             }
             AstNode::Procedure {ref ident, ref block} => {
-                Self::visit_var(ident);
+                //Self::visit_var(ident);
                 None
             }
             _ => None
         }
     }
     
-    fn visit_var(node: &AstNode<'a>) {
-        if let &AstNode::Ident(s) = node {
-            println!("var {:?}", s);
-        }
-    }
+    // fn visit_var(node: &AstNode<'a>) {
+    //     if let &AstNode::Ident(s) = node {
+    //         println!("var {:?}", s);
+    //     }
+    // }
     
     fn get_ident(node: &AstNode<'a>) -> String {
         if let &AstNode::Ident(s) = node {
@@ -130,5 +145,14 @@ impl<'a> Interpreter<'a> {
         } else {
             panic!("asdf");
         }
+    }
+    
+    fn get_var_entry(var_stack: &mut Vec<HashMap<String, i32>>, var_name: String) -> &mut i32 {
+        
+        println!("vn: {}", var_name);
+        // TODO: search
+        let curr_scope = var_stack.last_mut().unwrap();
+        
+        curr_scope.get_mut(&var_name).unwrap()
     }
 }
