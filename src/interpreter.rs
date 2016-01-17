@@ -13,12 +13,12 @@ impl<'a> Interpreter<'a> {
     }
     
     pub fn run(&self) {
-        println!("run called");
+        // println!("run called");
         Self::visit(&self.ast);
     }
     
     fn visit(node: &AstNode<'a>) {
-        let mut variables: HashMap<String, i32> = HashMap::new();
+        let variables: HashMap<String, i32> = HashMap::new();
         let mut var_stack = vec![variables];
         Self::visit_impl(node, &mut var_stack);
     }
@@ -65,17 +65,24 @@ impl<'a> Interpreter<'a> {
                         Sign::Minus => acc - val.unwrap()
                     }
                 });
-                println!("ex = {:?}", ret);
+                // println!("ex = {:?}", ret);
                 Some(ret)
             },
+            
             AstNode::BeginEnd(ref statements) => {
                 for s in statements {
                     Self::visit_impl(s, var_stack);
                 }
                 None
             },
+            AstNode::WhileDo{ref condition, ref statement} => {
+                while Self::evaluate_codition(condition, var_stack) {
+                    Self::visit_impl(statement, var_stack);
+                }
+                None
+            },
             AstNode::Assignment {ref ident, ref expression} => {
-                println!("assign called");
+                // println!("assign called");
                 
                 
                 
@@ -87,7 +94,12 @@ impl<'a> Interpreter<'a> {
                 *e = ex_ret.unwrap();
                 
                 None
-            }
+            },
+            AstNode::ExclaimationMark {ref expression} => {
+                let ex_ret = Self::visit_impl(expression, var_stack).unwrap();
+                println!("{}", ex_ret);
+                None
+            },
             AstNode::Block{ref const_decl, ref var_decl, ref procedures, ref statement} => {
                 for c_decl in const_decl {
                     Self::visit_impl(c_decl, var_stack);
@@ -104,11 +116,11 @@ impl<'a> Interpreter<'a> {
                     Self::visit_impl(p, var_stack);
                 }
                 Self::visit_impl(statement, var_stack);
-                println!("block");
+                // println!("block");
                 None
             }
             AstNode::Const{ref ident, ref value} => {
-                println!("const");
+                // println!("const");
                 let curr_scope = var_stack.last_mut().unwrap();
                 
                 let ident = Self::get_ident(ident);
@@ -131,6 +143,25 @@ impl<'a> Interpreter<'a> {
     //     }
     // }
     
+    fn evaluate_codition(node: &AstNode<'a>, var_stack: &mut Vec<HashMap<String, i32>>) -> bool {
+        match *node {
+            AstNode::ComposedExpression{ref ex1, ref op, ref ex2} => {
+                let ex_ret1 = Self::visit_impl(ex1, var_stack).unwrap();
+                let ex_ret2 = Self::visit_impl(ex2, var_stack).unwrap();
+                
+                match *op {
+                    ExOp::Equal => ex_ret1 == ex_ret2,
+                    ExOp::NumberSign => ex_ret1 != ex_ret2,
+                    ExOp::LessThan => ex_ret1 < ex_ret2,
+                    ExOp::LessThanOrEqual => ex_ret1 <= ex_ret2,
+                    ExOp::GreaterThan => ex_ret1 > ex_ret2,
+                    ExOp::GreaterThanOrEqual => ex_ret1 >= ex_ret2,
+                }
+            },
+            _ => panic!("invalid condition")
+        }
+    }
+    
     fn get_ident(node: &AstNode<'a>) -> String {
         if let &AstNode::Ident(s) = node {
             s.to_owned()
@@ -149,7 +180,7 @@ impl<'a> Interpreter<'a> {
     
     fn get_var_entry(var_stack: &mut Vec<HashMap<String, i32>>, var_name: String) -> &mut i32 {
         
-        println!("vn: {}", var_name);
+        // println!("vn: {}", var_name);
         // TODO: search
         let curr_scope = var_stack.last_mut().unwrap();
         

@@ -16,7 +16,7 @@ pub enum BiOp {
 }
 
 #[derive(Debug, Clone)]
-enum ExOp {
+pub enum ExOp {
     Equal,
     NumberSign,
     LessThan,

@@ -27,12 +27,21 @@ fn main() {
     
    
     let p = parse_only(run_lexer, "
-VAR x, y;
+VAR x, squ;
+
+PROCEDURE square;
+BEGIN
+   squ:= x * x
+END;
 
 BEGIN
-    y := -10;
-   x := (y + 1) * 4;
-   
+   x := 1;
+   WHILE x <= 10 DO
+   BEGIN
+      squ:= x * x;
+      ! squ;
+      x := x + 1
+   END
 END.
                              ".as_bytes());
 
