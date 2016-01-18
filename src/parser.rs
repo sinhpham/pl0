@@ -1,5 +1,4 @@
 use chomp::*;
-use std::str;
 
 use lexer::*;
 
@@ -32,6 +31,7 @@ pub enum AstNode<'a> {
     Factor(Box<AstNode<'a>>),
     Term{factors: Vec<AstNode<'a>>, ops: Vec<BiOp>},
     Expression{terms: Vec<AstNode<'a>>, signs: Vec<Sign>},
+    Odd(Box<AstNode<'a>>),
     ComposedExpression{ex1: Box<AstNode<'a>>, op: ExOp, ex2: Box<AstNode<'a>>},
     BeginEnd(Vec<AstNode<'a>>),
     IfThen{condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
@@ -204,11 +204,11 @@ fn factor<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
     fn grouped_expression<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
         parse!{i;
         
-            let t = satisfy_with(token_separator_cotent, |sep| sep == Some("("));
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("("));
             
             let e = expression();
             
-            let t = satisfy_with(token_separator_cotent, |sep| sep == Some(")"));
+            let _ = satisfy_with(token_separator_cotent, |sep| sep == Some(")"));
             
             ret e
         }
@@ -310,7 +310,7 @@ fn condition<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("ODD"));
             let ex = expression();
-            ret ex
+            ret AstNode::Odd(Box::new(ex))
         }
     }
 
@@ -325,7 +325,6 @@ fn condition<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
     }
     
     parse!{i;
-        
         
         let ret = or(odd_expression, composed_expression);
         ret ret
