@@ -29,17 +29,17 @@ pub enum AstNode<'a> {
     Number(i32),
     Ident(&'a str),
     Factor(Box<AstNode<'a>>),
-    Term{factors: Vec<AstNode<'a>>, ops: Vec<BiOp>},
-    Expression{terms: Vec<AstNode<'a>>, signs: Vec<Sign>},
+    Term {factors: Vec<AstNode<'a>>, ops: Vec<BiOp>},
+    Expression {terms: Vec<AstNode<'a>>, signs: Vec<Sign>},
     Odd(Box<AstNode<'a>>),
-    ComposedExpression{ex1: Box<AstNode<'a>>, op: ExOp, ex2: Box<AstNode<'a>>},
+    ComposedExpression {ex1: Box<AstNode<'a>>, op: ExOp, ex2: Box<AstNode<'a>>},
     BeginEnd(Vec<AstNode<'a>>),
-    IfThen{condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
-    WhileDo{condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
+    IfThen {condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
+    WhileDo {condition: Box<AstNode<'a>>, statement: Box<AstNode<'a>>},
     Assignment {ident: Box<AstNode<'a>>, expression: Box<AstNode<'a>>},
-    Call {ident: Box<AstNode<'a>>},
-    QuestionMark {ident: Box<AstNode<'a>>},
-    ExclaimationMark {expression: Box<AstNode<'a>>},
+    Call(Box<AstNode<'a>>),
+    QuestionMark(Box<AstNode<'a>>),
+    ExclaimationMark(Box<AstNode<'a>>),
     Const {ident: Box<AstNode<'a>>, value: Box<AstNode<'a>>},
     Procedure {ident: Box<AstNode<'a>>, block: Box<AstNode<'a>>},
     Block {const_decl: Vec<AstNode<'a>>, var_decl: Vec<AstNode<'a>>, procedures: Vec<AstNode<'a>>, statement: Box<AstNode<'a>>}
@@ -353,9 +353,7 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             let _ = satisfy_with(token_keyword_cotent, |sep| sep == Some("CALL"));
             
             let ident = ident();
-            ret AstNode::Call {
-                ident: Box::new(ident)
-            }
+            ret AstNode::Call(Box::new(ident))
         }
     }
     
@@ -364,9 +362,7 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
             
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("?"));
             let ident = ident();
-            ret AstNode::QuestionMark {
-                ident: Box::new(ident)
-            }
+            ret AstNode::QuestionMark(Box::new(ident))
         }
     }
     
@@ -374,9 +370,7 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
         parse!{i;
             let _ = satisfy_with(token_separator_cotent, |sep| sep == Some("!"));
             let ex = expression();
-            ret AstNode::ExclaimationMark {
-                expression: Box::new(ex)
-            }
+            ret AstNode::ExclaimationMark(Box::new(ex))
         }
     }
     

@@ -37,7 +37,7 @@ impl<'a> Interpreter<'a> {
             AstNode::Factor(ref n) => {
                 Self::visit_impl(n, var_stack, p_map)
             }
-            AstNode::Term{ref factors, ref ops} => {
+            AstNode::Term {ref factors, ref ops} => {
                 // println!("factors = {:?}", factors);
                 let first_op = [BiOp::Mul];
                 let v = factors.iter().map(|f| Self::visit_impl(f, var_stack, p_map)).zip(first_op.iter().chain(ops));
@@ -55,7 +55,7 @@ impl<'a> Interpreter<'a> {
                 
                 Some(ret)
             }
-            AstNode::Expression{ref terms, ref signs} => {
+            AstNode::Expression {ref terms, ref signs} => {
                 let (first_val, r_terms) = if terms.len() == signs.len() {
                     (0, terms.iter().skip(0))
                 } else {
@@ -72,10 +72,10 @@ impl<'a> Interpreter<'a> {
                 // println!("ex = {:?}", ret);
                 Some(ret)
             }
-            AstNode::Odd(ref ex) => {
+            AstNode::Odd(_) => {
                 None
             }
-            AstNode::ComposedExpression{ref ex1, ref op, ref ex2} => {
+            AstNode::ComposedExpression {..} => {
                 None
             }
             AstNode::BeginEnd(ref statements) => {
@@ -84,13 +84,13 @@ impl<'a> Interpreter<'a> {
                 }
                 None
             }
-            AstNode::IfThen{ref condition, ref statement} => {
+            AstNode::IfThen {ref condition, ref statement} => {
                 if Self::evaluate_codition(condition, var_stack, p_map) {
                     Self::visit_impl(statement, var_stack, p_map);
                 }
                 None
             }
-            AstNode::WhileDo{ref condition, ref statement} => {
+            AstNode::WhileDo {ref condition, ref statement} => {
                 while Self::evaluate_codition(condition, var_stack, p_map) {
                     Self::visit_impl(statement, var_stack, p_map);
                 }
@@ -109,22 +109,23 @@ impl<'a> Interpreter<'a> {
                 
                 None
             }
-            AstNode::Call {ref ident} => {
+            AstNode::Call(ref ident) => {
                 let ident = Self::get_ident(ident);
                 
                 let p = *p_map.get(&ident).unwrap();
                 Self::visit_impl(p, var_stack, p_map);
                 None
             }
-            AstNode::QuestionMark { ref ident } => {
+            AstNode::QuestionMark(_) => {
+                // TODO
                 None
             }
-            AstNode::ExclaimationMark {ref expression} => {
+            AstNode::ExclaimationMark(ref expression) => {
                 let ex_ret = Self::visit_impl(expression, var_stack, p_map).unwrap();
                 println!("{}", ex_ret);
                 None
             }
-            AstNode::Const{ref ident, ref value} => {
+            AstNode::Const {ref ident, ref value} => {
                 // println!("const");
                 let curr_scope = var_stack.last_mut().unwrap();
                 
@@ -140,7 +141,7 @@ impl<'a> Interpreter<'a> {
                 p_map.insert(ident, block);
                 None
             }
-            AstNode::Block{ref const_decl, ref var_decl, ref procedures, ref statement} => {
+            AstNode::Block {ref const_decl, ref var_decl, ref procedures, ref statement} => {
                 for c_decl in const_decl {
                     Self::visit_impl(c_decl, var_stack, p_map);
                 }
@@ -169,7 +170,7 @@ impl<'a> Interpreter<'a> {
                 
                 if r % 2 == 0 { false } else { true }
             }
-            AstNode::ComposedExpression{ref ex1, ref op, ref ex2} => {
+            AstNode::ComposedExpression {ref ex1, ref op, ref ex2} => {
                 let ex_ret1 = Self::visit_impl(ex1, var_stack, p_map).unwrap();
                 let ex_ret2 = Self::visit_impl(ex2, var_stack, p_map).unwrap();
                 
