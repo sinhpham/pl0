@@ -29,10 +29,8 @@ impl<'a> Interpreter<'a> {
         match *node {
             AstNode::Number(num) => Some(num),
             AstNode::Ident(ref s) => {
-                // println!("Ident = {:?}", s);
-                let curr_scope = var_stack.last().unwrap();
-                // println!("curr_scope: {:?}", curr_scope);
-                Some(*curr_scope.get(s.to_owned()).unwrap())
+                let v = Self::get_var_entry(var_stack, s.to_string());
+                Some(*v)
             }
             AstNode::Factor(ref n) => {
                 Self::visit_impl(n, var_stack, p_map)
@@ -113,7 +111,13 @@ impl<'a> Interpreter<'a> {
                 let ident = Self::get_ident(ident);
                 
                 let p = *p_map.get(&ident).unwrap();
+                
+                let v_s: HashMap<String, i32> = HashMap::new();
+                var_stack.push(v_s);
+                
                 Self::visit_impl(p, var_stack, p_map);
+                var_stack.pop();
+                
                 None
             }
             AstNode::QuestionMark(_) => {
@@ -205,10 +209,11 @@ impl<'a> Interpreter<'a> {
     
     fn get_var_entry(var_stack: &mut Vec<HashMap<String, i32>>, var_name: String) -> &mut i32 {
         
-        // println!("vn: {}", var_name);
-        // TODO: search
-        let curr_scope = var_stack.last_mut().unwrap();
-        
-        curr_scope.get_mut(&var_name).unwrap()
+        for v in var_stack.iter_mut().rev() {
+            if let Some(x) = v.get_mut(&var_name) {
+                return x;
+            }
+        }
+        panic!("variable not found");
     }
 }
