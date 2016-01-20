@@ -1,5 +1,6 @@
 use parser::*;
 use std::collections::HashMap;
+use std::io;
 
 pub struct Interpreter<'a> {
     ast: AstNode<'a>,
@@ -120,7 +121,22 @@ impl<'a> Interpreter<'a> {
                 
                 None
             }
-            AstNode::QuestionMark(_) => {
+            AstNode::QuestionMark(ref ident) => {
+                let mut input_text = String::new();
+                io::stdin()
+                    .read_line(&mut input_text)
+                    .expect("failed to read from stdin");
+
+                let trimmed = input_text.trim();
+                match trimmed.parse::<i32>() {
+                    Ok(i) => {
+                        let ident = Self::get_ident(ident);
+                        let e = Self::get_var_entry(var_stack, ident);
+                
+                        *e = i;
+                    }
+                    Err(..) => panic!("wrong input"),
+                };
                 // TODO
                 None
             }
