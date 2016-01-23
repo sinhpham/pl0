@@ -104,20 +104,15 @@ fn div_sign<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, BiOp> {
     }
 }
 
-macro_rules! alt {
-    ($i:expr, $a:expr) => { $a };
-    ($i:expr, $a:expr, $b:expr) => { or($i, $a, $b) };
-    ($i:expr, $a:expr, $($b:expr),*) => { or($i, $a, |i| alt!(i, $($b),*)) };
-}
-
 fn ex_op<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
-    alt!(i,
-        less_than_or_equal,
-        greater_than_or_equal,
-        equal,
-        number_sign,
-        less_than,
-        greater_than)
+    parse!{i;
+        less_than_or_equal()
+        <|> greater_than_or_equal()
+        <|> equal()
+        <|> number_sign()
+        <|> less_than()
+        <|> greater_than()
+    }
 }
 
 fn equal<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, ExOp> {
@@ -420,14 +415,15 @@ fn statement<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>
     }
     
     fn all_choices<'a>(i: Input<'a, Token>) -> SimpleResult<'a, Token<'a>, AstNode<'a>> {
-        alt!(i,
-        assignment,
-        call,
-        question_mark,
-        exclaimation,
-        begin_end_block,
-        if_then,
-        while_do)
+        parse!{i;
+            assignment()
+            <|> call()
+            <|> question_mark()
+            <|> exclaimation()
+            <|> begin_end_block()
+            <|> if_then()
+            <|> while_do()
+        }
     }
         
     parse!{i;
