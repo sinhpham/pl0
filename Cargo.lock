@@ -2,7 +2,7 @@
 name = "pl0"
 version = "0.1.0"
 dependencies = [
- "chomp 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "chomp 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -12,7 +12,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "chomp"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",

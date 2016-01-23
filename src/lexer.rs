@@ -2,6 +2,7 @@ use chomp::*;
 //use chomp::parsers::Error;
 use std::str;
 use std::cell::Cell;
+// use std::io;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Token<'a> {
@@ -36,31 +37,28 @@ fn ident(i: Input<u8>) -> U8Result<Token> {
     }
 }
 
-macro_rules! alt {
-    ($i:expr, $a:expr) => { $a };
-    ($i:expr, $a:expr, $b:expr) => { or($i, $a, $b) };
-    ($i:expr, $a:expr, $($b:expr),*) => { or($i, $a, |i| alt!(i, $($b),*)) };
-}
-
 fn keyword(i: Input<u8>) -> U8Result<Token> {
     fn to_kw(s: &[u8]) -> Token {
         Token::Keyword(str::from_utf8(s).unwrap())
     }
     
     fn all_kw(i: Input<u8>) -> U8Result<Token> {
-        alt!(i,
-            |idx| string(idx, b"BEGIN").map(to_kw),
-            |idx| string(idx, b"END").map(to_kw),
-            |idx| string(idx, b"PROCEDURE").map(to_kw),
-            |idx| string(idx, b"WHILE").map(to_kw),
-            |idx| string(idx, b"DO").map(to_kw),
-            |idx| string(idx, b"IF").map(to_kw),
-            |idx| string(idx, b"THEN").map(to_kw),
-            |idx| string(idx, b"CALL").map(to_kw),
-            |idx| string(idx, b"ODD").map(to_kw),
-            |idx| string(idx, b"VAR").map(to_kw),
-            |idx| string(idx, b"CONST").map(to_kw)
-        )
+        
+        parse!{i;
+            let r = string(b"BEGIN")
+                <|> string(b"END")
+                <|> string(b"PROCEDURE")
+                <|> string(b"WHILE")
+                <|> string(b"DO")
+                <|> string(b"IF")
+                <|> string(b"THEN")
+                <|> string(b"CALL")
+                <|> string(b"ODD")
+                <|> string(b"VAR")
+                <|> string(b"CONST");
+                
+            ret to_kw(r)
+        }
     }
     
     parse!{i;
@@ -76,25 +74,27 @@ fn separator(i: Input<u8>) -> U8Result<Token> {
     }
     
     fn all_sep(i: Input<u8>) -> U8Result<Token> {
-        alt!(i,
-            |idx| string(idx, b":=").map(to_sep),
-            |idx| string(idx, b">=").map(to_sep),
-            |idx| string(idx, b"<=").map(to_sep),
-            |idx| string(idx, b",").map(to_sep),
-            |idx| string(idx, b";").map(to_sep),
-            |idx| string(idx, b"=").map(to_sep),
-            |idx| string(idx, b">").map(to_sep),
-            |idx| string(idx, b"<").map(to_sep),
-            |idx| string(idx, b"+").map(to_sep),
-            |idx| string(idx, b"-").map(to_sep),
-            |idx| string(idx, b"*").map(to_sep),
-            |idx| string(idx, b"/").map(to_sep),
-            |idx| string(idx, b"#").map(to_sep),
-            |idx| string(idx, b".").map(to_sep),
-            |idx| string(idx, b"!").map(to_sep),
-            |idx| string(idx, b"(").map(to_sep),
-            |idx| string(idx, b")").map(to_sep)
-        )
+        parse!{i;
+            let r = string(b":=")
+                <|> string(b">=")
+                <|> string(b"<=")
+                <|> string(b",")
+                <|> string(b";")
+                <|> string(b"=")
+                <|> string(b">")
+                <|> string(b"<")
+                <|> string(b"+")
+                <|> string(b"-")
+                <|> string(b"*")
+                <|> string(b"/")
+                <|> string(b"#")
+                <|> string(b".")
+                <|> string(b"!")
+                <|> string(b"(")
+                <|> string(b")");
+            
+            ret to_sep(r)
+        }
     }
     
     parse!{i;
@@ -106,15 +106,24 @@ fn separator(i: Input<u8>) -> U8Result<Token> {
 
 pub fn run_lexer(i: Input<u8>) -> U8Result<Vec<Token>> {
     fn is_token(i: Input<u8>) -> U8Result<Token> {
-        alt!(i,
-            keyword,
-            separator,
-            number,
-            ident
-        )
+        // println!("tok called");
+        // println!("i = {:?}", i);
+        // let mut input_text = String::new();
+        // io::stdin()
+        //             .read_line(&mut input_text);
+        parse!{i;
+            let r = keyword() <|> separator() <|> number() <|> ident();
+
+            ret r
+        }
     }
     
     fn is_not_token(i: Input<u8>) -> U8Result<()> {
+        // println!("not tok called");
+        // println!("i = {:?}", i);
+        // let mut input_text = String::new();
+        // io::stdin()
+        //             .read_line(&mut input_text);
         parse!{i;
             let _ = take_while(|c| (c as char).is_whitespace());
 

@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["Sinh Pham <phamansinh@gmail.com>"]
 
 [dependencies]
-chomp = "0.2.2"
+chomp = "0.2.3"
