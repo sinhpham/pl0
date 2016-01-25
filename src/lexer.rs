@@ -1,3 +1,5 @@
+use regex::Regex;
+
 use chomp::*;
 //use chomp::parsers::Error;
 use std::str;
@@ -146,6 +148,86 @@ pub fn run_lexer(i: Input<u8>) -> U8Result<Vec<Token>> {
 
         ret tokens
     }
+}
+
+
+
+pub fn r_lexer(input: &str) -> Vec<Token> {
+    fn r_number(input: &str) -> Option<(Token, usize, usize)> {
+        let re = Regex::new(r"^\d+").unwrap();
+        
+        if let Some((start, end)) = re.find(input) {
+            let num = input[start..end].parse::<i32>().unwrap();
+            return Some((Token::Number(num), start, end));
+        }
+        None
+    }
+    
+    fn r_ident(input: &str) -> Option<(Token, usize, usize)> {
+        let re = Regex::new(r"^[:alpha:]([:alpha:]|\d)+").unwrap();
+        
+        if let Some((start, end)) = re.find(input) {
+            return Some((Token::Ident(&input[start..end]), start, end));
+        }
+        None
+    }
+    
+    fn r_keyword(input: &str) -> Option<(Token, usize, usize)> {
+        let re = Regex::new(r"^(BEGIN)|(END)|(PROCEDURE)|(WHILE)|(DO)|(IF)|(THEN)|(CALL)|(ODD)|(VAR)|(CONST)").unwrap();
+        
+        if let Some((start, end)) = re.find(input) {
+            return Some((Token::Keyword(&input[start..end]), start, end));
+        }
+        None
+    }
+    
+    fn r_sep(input: &str) -> Option<(Token, usize, usize)> {
+        let re = Regex::new(r"^(:=)|(>=)|(<=)|(,)|(.)|(;)|(=)|(>)|(<)|(\+)|(-)|(\*)|(/)|(#)|(!)|(\()|(\))").unwrap();
+        
+        if let Some((start, end)) = re.find(input) {
+            return Some((Token::Separator(&input[start..end]), start, end));
+        }
+        None
+    }
+    
+    fn r_whitespace(input: &str) -> Option<(usize, usize)> {
+        let re = Regex::new(r"^\s+").unwrap();
+        
+        re.find(input)
+    }
+    
+    
+    let mut r = vec![];
+    
+    let mut curr_idx:usize = 0;
+    let mut curr_str = &input[curr_idx..];
+    
+    // let m_funcs = vec![&r_keyword, &r_sep, &r_number, Box::new(r_ident)];
+    let f1 = &r_keyword;
+    let f2 = &r_sep;
+    let mut m_funcs: Vec<&Fn(&str) -> Option<(Token, usize, usize)>> = Vec::new();
+    
+    
+    m_funcs.push(f1);
+    m_funcs.push(f2);
+    
+    while !curr_str.is_empty() {
+        if let Some((_, non_empty)) = r_whitespace(curr_str) {
+            curr_idx = non_empty;
+            curr_str = &input[curr_idx..]
+        }
+        
+        for m_func in &m_funcs {
+            if let Some((t, _, n_start)) = m_func(curr_str) {
+                curr_idx = n_start;
+                curr_str = &input[curr_idx..];
+                r.push(t);
+                break;
+            }
+        }
+    }
+    
+    r
 }
 
 #[test]

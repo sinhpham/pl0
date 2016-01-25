@@ -1,5 +1,4 @@
 use chomp::*;
-
 use lexer::*;
 
 #[derive(Debug, Clone)]
