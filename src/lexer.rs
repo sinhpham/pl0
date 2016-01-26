@@ -4,7 +4,8 @@ use chomp::*;
 //use chomp::parsers::Error;
 use std::str;
 use std::cell::Cell;
-// use std::io;
+use std::collections::HashSet;
+use std::io;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Token<'a> {
@@ -163,20 +164,34 @@ pub fn r_lexer(input: &str) -> Vec<Token> {
         None
     }
     
-    fn r_ident(input: &str) -> Option<(Token, usize, usize)> {
+    fn r_ident_keyword(input: &str) -> Option<(Token, usize, usize)> {
+        let keywords = {
+            let mut kw = HashSet::new();
+            kw.insert("BEGIN");
+            kw.insert("END");
+            kw.insert("PROCEDURE");
+            kw.insert("WHILE");
+            kw.insert("DO");
+            kw.insert("IF");
+            kw.insert("THEN");
+            kw.insert("CALL");
+            kw.insert("ODD");
+            kw.insert("VAR");
+            kw.insert("CONST");
+            
+            kw
+        }; 
+        
         let re = Regex::new(r"^[:alpha:]([:alpha:]|\d)+").unwrap();
         
         if let Some((start, end)) = re.find(input) {
-            return Some((Token::Ident(&input[start..end]), start, end));
-        }
-        None
-    }
-    
-    fn r_keyword(input: &str) -> Option<(Token, usize, usize)> {
-        let re = Regex::new(r"^(BEGIN)|(END)|(PROCEDURE)|(WHILE)|(DO)|(IF)|(THEN)|(CALL)|(ODD)|(VAR)|(CONST)").unwrap();
-        
-        if let Some((start, end)) = re.find(input) {
-            return Some((Token::Keyword(&input[start..end]), start, end));
+            let value = &input[start..end];
+            
+            if keywords.contains(value) {
+                return Some((Token::Keyword(value), start, end))
+            }
+            
+            return Some((Token::Ident(value), start, end));
         }
         None
     }
@@ -203,28 +218,43 @@ pub fn r_lexer(input: &str) -> Vec<Token> {
     let mut curr_str = &input[curr_idx..];
     
     // let m_funcs = vec![&r_keyword, &r_sep, &r_number, Box::new(r_ident)];
-    let f1 = &r_keyword;
-    let f2 = &r_sep;
-    let mut m_funcs: Vec<&Fn(&str) -> Option<(Token, usize, usize)>> = Vec::new();
     
+    let f1 = &r_ident_keyword;
+    let f2 = &r_number;
+    let f3 = &r_sep;
+    
+    let d = f1(input);
+    println!("d = {:?}", d);
+    
+    let mut m_funcs: Vec<&Fn(&str) -> Option<(Token, usize, usize)>> = Vec::new();
     
     m_funcs.push(f1);
     m_funcs.push(f2);
+    m_funcs.push(f3);
     
     while !curr_str.is_empty() {
+        println!("while curr_str = {:?}", curr_str);
+        
         if let Some((_, non_empty)) = r_whitespace(curr_str) {
-            curr_idx = non_empty;
-            curr_str = &input[curr_idx..]
+            curr_idx += non_empty;
+            curr_str = &input[curr_idx..];
+            println!("ws curr_str = {:?}", curr_str);
         }
         
         for m_func in &m_funcs {
+            println!("call f");
             if let Some((t, _, n_start)) = m_func(curr_str) {
-                curr_idx = n_start;
+                curr_idx += n_start;
                 curr_str = &input[curr_idx..];
+                println!("f curr_str = {:?}", curr_str);
                 r.push(t);
                 break;
             }
         }
+        let mut input = String::new();
+
+        (io::stdin().read_line(&mut input));
+        //panic!("shouldn't be here");
     }
     
     r
