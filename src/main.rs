@@ -15,28 +15,32 @@ use parser::*;
 use interpreter::*;
 
 fn main() {
-   
-//     let p = parse_only(run_lexer, "
-// CONST
-//   m =  7,
-//   n = 85;".as_bytes());
+
   
-    let r = r_lexer("1234556 d");
-    println!("{:?}", r);
-    //println!("{:?}", p);
-    // {
-    //     if let Ok(tokens) = p {
-    //         //let input = Input::new(&tokens);
-    //         // println!("{:?}", tokens);
-    //         let ast = parse_only(program, &tokens);
-    //         // println!("{:?}", ast);
-    //         
-    //         if let Ok(c) = ast {
-    //             let interpreter = Interpreter::new(c);
-    //             let ret = interpreter.run();
-    //             println!("ret = {:?}", ret);
-    //         }
-    //     }
-    // }
+    let tokens = r_lexer("VAR x, squ;
+
+PROCEDURE square;
+BEGIN
+   squ:= x * x
+END;
+
+BEGIN
+   x := 1;
+   WHILE x <= 10 DO
+   BEGIN
+      CALL square;
+      ! squ;
+      x := x + 1
+   END
+END.");
+
+
+    let ast = parse_only(program, &tokens);
+    
+    if let Ok(c) = ast {
+        let interpreter = Interpreter::new(c);
+        let ret = interpreter.run();
+        println!("ret = {:?}", ret);
+    }
     
 }

@@ -182,7 +182,7 @@ pub fn r_lexer(input: &str) -> Vec<Token> {
             kw
         }; 
         
-        let re = Regex::new(r"^[:alpha:]([:alpha:]|\d)+").unwrap();
+        let re = Regex::new(r"^[:alpha:]([:alpha:]|\d)*").unwrap();
         
         if let Some((start, end)) = re.find(input) {
             let value = &input[start..end];
@@ -224,7 +224,7 @@ pub fn r_lexer(input: &str) -> Vec<Token> {
     let f3 = &r_sep;
     
     let d = f1(input);
-    println!("d = {:?}", d);
+    // println!("d = {:?}", d);
     
     let mut m_funcs: Vec<&Fn(&str) -> Option<(Token, usize, usize)>> = Vec::new();
     
@@ -233,27 +233,27 @@ pub fn r_lexer(input: &str) -> Vec<Token> {
     m_funcs.push(f3);
     
     while !curr_str.is_empty() {
-        println!("while curr_str = {:?}", curr_str);
+        // println!("while curr_str = {:?}", curr_str);
         
         if let Some((_, non_empty)) = r_whitespace(curr_str) {
             curr_idx += non_empty;
             curr_str = &input[curr_idx..];
-            println!("ws curr_str = {:?}", curr_str);
+            // println!("ws curr_str = {:?}", curr_str);
         }
         
         for m_func in &m_funcs {
-            println!("call f");
+            // println!("call f");
             if let Some((t, _, n_start)) = m_func(curr_str) {
                 curr_idx += n_start;
                 curr_str = &input[curr_idx..];
-                println!("f curr_str = {:?}", curr_str);
+                // println!("f curr_str = {:?}", curr_str);
                 r.push(t);
                 break;
             }
         }
-        let mut input = String::new();
-
-        (io::stdin().read_line(&mut input));
+//         let mut input = String::new();
+// 
+//         (io::stdin().read_line(&mut input));
         //panic!("shouldn't be here");
     }
     
