@@ -116,8 +116,99 @@ pub fn r_lexer(input: &str) -> Result<Vec<Token>, String> {
 }
 
 #[test]
-fn test_number() {
-    let x = parse_only(number, b"123");
-    println!("{:?}", x);
-    assert!(x.is_ok());
+fn test_r_lexer() {
+    let tokens = r_lexer("
+CONST
+  m =  7,
+  n = 85;
+
+VAR
+  x, y, z, q, r;
+
+PROCEDURE multiply;
+VAR a, b;
+
+BEGIN
+  a := x;
+  b := y;
+  z := 0;
+  WHILE b > 0 DO BEGIN
+    IF ODD b THEN z := z + a;
+    a := 2 * a;
+    b := b / 2
+  END
+END;
+
+PROCEDURE divide;
+VAR w;
+BEGIN
+  r := x;
+  q := 0;
+  w := y;
+  WHILE w <= r DO w := 2 * w;
+  WHILE w > y DO BEGIN
+    q := 2 * q;
+    w := w / 2;
+    IF w <= r THEN BEGIN
+      r := r - w;
+      q := q + 1
+    END
+  END
+END;
+
+PROCEDURE gcd;
+VAR f, g;
+BEGIN
+  f := x;
+  g := y;
+  WHILE f # g DO BEGIN
+    IF f < g THEN g := g - f;
+    IF g < f THEN f := f - g
+  END;
+  z := f
+END;
+
+BEGIN
+  x := m;
+  y := n;
+  CALL multiply;
+  !z;
+  
+  x := 25;
+  y :=  3;
+  CALL divide;
+  !r;
+  !q;
+  
+  x := 84;
+  y := 36;
+  CALL gcd;
+  
+  !z;
+END.");
+
+    assert!(tokens.is_ok());
+}
+
+#[test]
+fn test_r_lexer2() {
+    let tokens = r_lexer("
+VAR x, squ;
+
+PROCEDURE square;
+BEGIN
+   squ:= x * x
+END;
+
+BEGIN
+   x := 1;
+   WHILE x <= 10 DO
+   BEGIN
+      CALL square;
+      ! squ;
+      x := x + 1
+   END
+END.");
+
+    assert!(tokens.is_ok());
 }
