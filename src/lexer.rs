@@ -1,8 +1,6 @@
 use regex::Regex;
 
 use chomp::*;
-use std::str;
-use std::cell::Cell;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, Copy)]
@@ -71,23 +69,22 @@ pub fn r_lexer(input: &str) -> Result<Vec<Token>, String> {
         re.find(input)
     }
     
+    let mut ret = vec![];
     
-    let mut r = vec![];
-    
-    let mut curr_idx:usize = 0;
+    let mut curr_idx: usize = 0;
     let mut curr_str = &input[curr_idx..];
     
     let f1 = &r_ident_keyword;
     let f2 = &r_number;
     let f3 = &r_sep;
-    
-    let d = f1(input);
-    
-    let mut m_funcs: Vec<&Fn(&str) -> Option<(Token, usize, usize)>> = Vec::new();
-    
-    m_funcs.push(f1);
-    m_funcs.push(f2);
-    m_funcs.push(f3);
+    let m_funcs = {
+        let mut m_funcs: Vec<&Fn(&str) -> Option<(Token, usize, usize)>> = Vec::new();
+        m_funcs.push(f1);
+        m_funcs.push(f2);
+        m_funcs.push(f3);
+        
+        m_funcs
+    };
     
     while !curr_str.is_empty() {
         let mut progressed = false;
@@ -98,10 +95,10 @@ pub fn r_lexer(input: &str) -> Result<Vec<Token>, String> {
         }
         
         for m_func in &m_funcs {
-            if let Some((t, _, n_start)) = m_func(curr_str) {
+            if let Some((token, _, n_start)) = m_func(curr_str) {
                 curr_idx += n_start;
                 curr_str = &input[curr_idx..];
-                r.push(t);
+                ret.push(token);
                 progressed = true;
                 break;
             }
@@ -112,7 +109,7 @@ pub fn r_lexer(input: &str) -> Result<Vec<Token>, String> {
         }
     }
     
-    Ok(r)
+    Ok(ret)
 }
 
 #[test]
